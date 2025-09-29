@@ -3,16 +3,12 @@ import React, { ReactNode, useState } from 'react';
 import {
   Home,
   MapPin,
-  ShoppingCart,
-  MessageCircle,
-  Settings,
 } from 'lucide-react';
 import Navbar from '../../navbar/page';
-import HomePage from '../home/page'; // import your HomePage
-import MyFarmPage from '../my-farm/page';
-import MarketPage from '../market/page';
-import MessagesPage from '../message/page';
-import SettingsPage from '../settings/page';
+import MyOrders from '../my-orders/page';
+import MarketPlace from '../market-place/page';
+
+
 
 interface DashboardLayoutProps {
   children?: ReactNode;
@@ -23,27 +19,20 @@ export default function DashboardLayout({ }: DashboardLayoutProps) {
 
   const menuItems = [
     { name: 'Home', icon: <Home size={20} /> },
-    { name: 'My Farm', icon: <MapPin size={20} /> },
-    { name: 'Market', icon: <ShoppingCart size={20} /> },
-    { name: 'Messages', icon: <MessageCircle size={20} /> },
-    { name: 'Settings', icon: <Settings size={20} /> },
+    { name: 'My Orders', icon: <MapPin size={20} /> },
+   
   ];
 
   // Render content based on active menu item
   const renderContent = () => {
     switch (active) {
       case 'Home':
-        return <HomePage />;
-      case 'My Farm':
-        return <MyFarmPage />;
-      case 'Market':
-        return <MarketPage />;
-      case 'Messages':
-        return <MessagesPage />;
-      case 'Settings':
-        return <SettingsPage />;
+        return <MarketPlace />;
+      case 'My Orders':
+        return <MyOrders />;
+     
       default:
-        return <HomePage />;
+        return <MarketPlace />;
     }
   };
 

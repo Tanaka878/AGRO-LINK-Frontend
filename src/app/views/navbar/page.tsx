@@ -72,7 +72,7 @@ export default function Navbar() {
                     className="w-full text-red-600 text-left px-4 py-2.5 hover:bg-red-50 transition-colors flex items-center gap-3 group"
                     onClick={() => {
                       localStorage.clear();
-                      window.location.href = '/login';
+                      window.location.href = '/views/login-page/';
                     }}
                   >
                     <LogOut size={18} className="group-hover:translate-x-0.5 transition-transform" />
