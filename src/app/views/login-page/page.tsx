@@ -1,4 +1,5 @@
 'use client';
+import Base_URL from "@/app/api/route";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
@@ -21,7 +22,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8080/api/user/authenticate", {
+      const response = await fetch(`${Base_URL}/api/user/authenticate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -35,11 +36,13 @@ export default function LoginPage() {
 
       const data = await response.json();
       console.log("Login successful:", data);
+      localStorage.setItem("email", data.username);
+
 
       // Store JWT token (for later use)
       localStorage.setItem("token", data.token);
 
-      alert(`Welcome ${data.username}! Role: ${data.role}`);
+      router.push("/views/farmer/layout/")
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);

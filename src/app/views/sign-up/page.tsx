@@ -1,4 +1,5 @@
 'use client';
+import Base_URL from "@/app/api/route";
 import React, { useState } from "react";
 
 export default function SignUpPage() {
@@ -44,7 +45,7 @@ export default function SignUpPage() {
         marketPreferences: formData.marketPreferences.split(",").map(s => s.trim()),
       };
 
-      const response = await fetch("http://localhost:8080/api/farmers/register", {
+      const response = await fetch(`${Base_URL}/api/farmers/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
