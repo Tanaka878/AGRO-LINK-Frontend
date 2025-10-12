@@ -1,15 +1,96 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import Base_URL from '@/app/api/route';
+import { Order } from '../../Interface/Orders';
 
 export default function HomePage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [productType, setProductType] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [farmerEmail, setFarmerEmail] = useState(''); 
+    const [farmerName, setFarmerName] = useState(''); 
+
+
+  // Read from localStorage after component mounts
+  useEffect(() => {
+    const email = localStorage.getItem('email') || '';
+    const name = localStorage.getItem('name') || '';
+    setFarmerName(name);
+    setFarmerEmail(email);
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+
+    try {
+      const response = await fetch(`${Base_URL}/api/listed-products/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productType,
+          quantity: parseInt(quantity),
+          farmerEmail,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to list product');
+
+      setMessage('✅ Product listed successfully!');
+      setProductType('');
+      setQuantity('');
+    } catch (error) {
+      if (error instanceof Error) {
+        setMessage(`❌ ${error.message}`);
+      } else {
+        setMessage('❌ An unexpected error occurred');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const [orders, setOrders] = useState<Order[]>([]);
+
+useEffect(() => {
+  if (!farmerEmail) return;
+
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch(`${Base_URL}/api/orders/farmer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: farmerEmail }),
+      });
+
+      if (!res.ok) throw new Error('Failed to fetch orders');
+
+      const data = await res.json();
+      setOrders(data);
+    } catch (err) {
+      console.error('Failed to fetch orders', err);
+    }
+  };
+
+  fetchOrders();
+}, [farmerEmail]);
+
+
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       {/* Top Section: Greeting + Sell Produce */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-[#2E7D32]">
-          Good Morning, Wanjiku!
+          Good Morning, {farmerName}!
         </h1>
-        <button className="bg-[#FBC02D] text-white px-4 py-2 rounded-lg font-semibold hover:bg-yellow-500 transition">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-[#FBC02D] text-white px-4 py-2 rounded-lg font-semibold hover:bg-yellow-500 transition"
+        >
           SELL PRODUCE
         </button>
       </div>
@@ -21,7 +102,7 @@ export default function HomePage() {
         <div>Live Listings: 12</div>
       </div>
 
-      {/* Market Insights & Recent Orders */}
+      {/* Dashboard sections (same as before) */}
       <div className="grid grid-cols-2 gap-6">
         {/* Market Insights */}
         <div className="bg-white shadow-md p-4 rounded-lg border border-[#E0E0E0] space-y-3">
@@ -30,62 +111,89 @@ export default function HomePage() {
             <li>Tomato Price +15% 🔺 (Nairobi)</li>
             <li>Alert: High demand for maize in Eldoret</li>
           </ul>
-          <button className="bg-[#4CAF50] text-white px-3 py-1 rounded-md hover:bg-[#2E7D32] transition">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-[#4CAF50] text-white px-3 py-1 rounded-md hover:bg-[#2E7D32] transition"
+          >
             List Now
           </button>
-
-          {/* Upcoming Live Session */}
-          <div className="mt-4">
-            <h3 className="font-semibold text-[#2E7D32]">UPCOMING LIVE SESSION</h3>
-            <p>Pest Control Webinar (Tomorrow)</p>
-            <button className="bg-[#FBC02D] text-white px-3 py-1 rounded-md mt-1 hover:bg-yellow-500 transition">
-              Join Tomorrow 10AM
-            </button>
-          </div>
         </div>
 
         {/* Recent Orders & Messages */}
         <div className="bg-white shadow-md p-4 rounded-lg border border-[#E0E0E0] space-y-3">
           <h2 className="font-semibold text-[#2E7D32]">RECENT ORDERS & MESSAGES</h2>
-          {/* Orders */}
           <ul className="list-decimal list-inside text-[#6D4C41] space-y-1">
-            <li>
-              100kg Avocados - Buyer: CityMart | Status: Confirmed ✅
-            </li>
-            <li>
-              50kg Fertilizer - Seller: AgroInput | Status: In Transit 🚚
-            </li>
-          </ul>
+          {orders.map((order) => (
+           <li key={order.id}>
+         {order.quantity}kg {order.productType} - Buyer: {order.buyerName || 'N/A'} | Status: {order.status === 'COLLECTED' ? 'Collected ✅' : 'Pending ⏳'}
+    </li>
+  ))}
+</ul>
 
-          {/* Messages */}
-          <h3 className="font-semibold text-[#2E7D32] mt-3">MESSAGES:</h3>
-          <ul className="list-disc list-inside text-[#6D4C41] space-y-1">
-            <li>&quot;Hello, is the maize still available?&quot;</li>
-            <li>&quot;Your question was answered in the forum.&quot;</li>
-          </ul>
         </div>
       </div>
 
-      {/* Community Feed & Farm Summary */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Community Feed */}
-        <div className="bg-white shadow-md p-4 rounded-lg border border-[#E0E0E0] space-y-2">
-          <h2 className="font-semibold text-[#2E7D32]">MY COMMUNITY FEED</h2>
-          <ul className="list-disc list-inside text-[#6D4C41] space-y-1">
-            <li>Maria: &quot;Has anyone tried organic pest control?&quot;</li>
-            <li>Group: Coffee Growers - New Event</li>
-            <li>Expert Post: &quot;Soil Health Tips&quot;</li>
-          </ul>
-        </div>
+      {/* Modal for Selling Produce */}
+      {isModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
+            <h2 className="text-xl font-bold text-[#2E7D32] mb-4 text-center">
+              List Your Product
+            </h2>
 
-        {/* Farm Summary */}
-        <div className="bg-white shadow-md p-4 rounded-lg border border-[#E0E0E0] space-y-2">
-          <h2 className="font-semibold text-[#2E7D32]">MY FARM SUMMARY</h2>
-          <p>Live Listings: 5</p>
-          <p>Crops: Maize, Beans, Coffee</p>
-          <p>Livestock: 20 Chickens</p>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[#6D4C41] font-medium mb-1">
+                  Product Type
+                </label>
+                <input
+                  type="text"
+                  value={productType}
+                  onChange={(e) => setProductType(e.target.value)}
+                  required
+                  className="w-full border text-black border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#4CAF50] outline-none"
+                  placeholder="e.g. Maize, Tomatoes"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#6D4C41] font-medium mb-1">
+                  Quantity
+                </label>
+                <input
+                  type="number"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  required
+                  className="w-full border text-black border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#4CAF50] outline-none"
+                  placeholder="e.g. 50"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 bg-gray-300 rounded-lg text-gray-800 hover:bg-gray-400 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 bg-[#4CAF50] text-white rounded-lg hover:bg-[#2E7D32] transition"
+                >
+                  {loading ? 'Listing...' : 'Submit'}
+                </button>
+              </div>
+            </form>
+
+            {message && (
+              <p className="text-center mt-3 text-sm text-[#6D4C41]">{message}</p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -38,6 +38,8 @@ export default function LoginPage() {
       // Store JWT token & email
       localStorage.setItem("token", data.token);
       localStorage.setItem("email", data.username);
+      localStorage.setItem("name", data.name);
+      localStorage.setItem("role", data.role);
 
       // Redirect based on role
       if (data.role === "FARMER") {
