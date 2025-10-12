@@ -9,16 +9,19 @@ export default function HomePage() {
   const [quantity, setQuantity] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+
   const [farmerEmail, setFarmerEmail] = useState(''); 
-    const [farmerName, setFarmerName] = useState(''); 
+  const [farmerName, setFarmerName] = useState('Farmer'); 
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
 
-
-  // Read from localStorage after component mounts
+  // Run only on client - single useEffect for mounting
   useEffect(() => {
+    setIsMounted(true);
     const email = localStorage.getItem('email') || '';
-    const name = localStorage.getItem('name') || '';
-    setFarmerName(name);
+    const name = localStorage.getItem('name') || 'Farmer';
     setFarmerEmail(email);
+    setFarmerName(name);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,7 +35,7 @@ export default function HomePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productType,
-          quantity: parseInt(quantity),
+          quantity: parseInt(quantity, 10),
           farmerEmail,
         }),
       });
@@ -53,36 +56,33 @@ export default function HomePage() {
     }
   };
 
-  const [orders, setOrders] = useState<Order[]>([]);
+  // Fetch orders after farmerEmail is set
+  useEffect(() => {
+    if (!farmerEmail || !isMounted) return;
 
-useEffect(() => {
-  if (!farmerEmail) return;
+    const fetchOrders = async () => {
+      try {
+        const res = await fetch(`${Base_URL}/api/orders/farmer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: farmerEmail }),
+        });
 
-  const fetchOrders = async () => {
-    try {
-      const res = await fetch(`${Base_URL}/api/orders/farmer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: farmerEmail }),
-      });
+        if (!res.ok) throw new Error('Failed to fetch orders');
 
-      if (!res.ok) throw new Error('Failed to fetch orders');
+        const data = await res.json();
+        setOrders(data);
+      } catch (err) {
+        console.error('Failed to fetch orders', err);
+      }
+    };
 
-      const data = await res.json();
-      setOrders(data);
-    } catch (err) {
-      console.error('Failed to fetch orders', err);
-    }
-  };
-
-  fetchOrders();
-}, [farmerEmail]);
-
-
+    fetchOrders();
+  }, [farmerEmail, isMounted]);
 
   return (
     <div className="space-y-6 relative">
-      {/* Top Section: Greeting + Sell Produce */}
+      {/* Top Section */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-[#2E7D32]">
           Good Morning, {farmerName}!
@@ -102,7 +102,7 @@ useEffect(() => {
         <div>Live Listings: 12</div>
       </div>
 
-      {/* Dashboard sections (same as before) */}
+      {/* Dashboard */}
       <div className="grid grid-cols-2 gap-6">
         {/* Market Insights */}
         <div className="bg-white shadow-md p-4 rounded-lg border border-[#E0E0E0] space-y-3">
@@ -123,17 +123,22 @@ useEffect(() => {
         <div className="bg-white shadow-md p-4 rounded-lg border border-[#E0E0E0] space-y-3">
           <h2 className="font-semibold text-[#2E7D32]">RECENT ORDERS & MESSAGES</h2>
           <ul className="list-decimal list-inside text-[#6D4C41] space-y-1">
-          {orders.map((order) => (
-           <li key={order.id}>
-         {order.quantity}kg {order.productType} - Buyer: {order.buyerName || 'N/A'} | Status: {order.status === 'COLLECTED' ? 'Collected ✅' : 'Pending ⏳'}
-    </li>
-  ))}
-</ul>
-
+            {!isMounted ? (
+              <li className="text-gray-500">Loading...</li>
+            ) : orders.length === 0 ? (
+              <li className="text-gray-500">Nothing to display</li>
+            ) : (
+              orders.map((order) => (
+                <li key={order.id}>
+                  {order.quantity}kg {order.productType} - Buyer: {order.buyerName || 'N/A'} | Status: {order.status === 'COLLECTED' ? 'Collected ✅' : 'Pending ⏳'}
+                </li>
+              ))
+            )}
+          </ul>
         </div>
       </div>
 
-      {/* Modal for Selling Produce */}
+      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">

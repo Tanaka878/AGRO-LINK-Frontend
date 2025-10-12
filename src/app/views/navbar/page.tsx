@@ -1,18 +1,21 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, User, Settings, LogOut } from 'lucide-react';
 
 export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [isClient, setIsClient] = useState(false);
 
-  // ✅ Get user data from localStorage (token + email + username)
-  const email =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('email') || 'F'
-      : 'F';
+  // ✅ Load user data only on client side
+  useEffect(() => {
+    setIsClient(true);
+    const storedEmail = localStorage.getItem('email') || '';
+    setEmail(storedEmail);
+  }, []);
 
   // Get first letter of email for "avatar"
-  const avatarLetter = email.charAt(0).toUpperCase();
+  const avatarLetter = email ? email.charAt(0).toUpperCase() : 'F';
 
   return (
     <nav className="w-full bg-[#4CAF50] px-6 py-3 flex items-center justify-end shadow-md gap-6 relative">
@@ -45,7 +48,7 @@ export default function Navbar() {
             <div className="absolute right-0 mt-3 w-56 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
               {/* User info header */}
               <div className="px-4 py-3 bg-gradient-to-r from-[#4CAF50] to-[#66BB6A] text-white">
-                <p className="text-sm font-semibold truncate">{email}</p>
+                <p className="text-sm font-semibold truncate">{email || 'Guest'}</p>
                 <p className="text-xs opacity-90">Farmer Account</p>
               </div>
 
@@ -71,8 +74,10 @@ export default function Navbar() {
                   <button
                     className="w-full text-red-600 text-left px-4 py-2.5 hover:bg-red-50 transition-colors flex items-center gap-3 group"
                     onClick={() => {
-                      localStorage.clear();
-                      window.location.href = '/views/login-page/';
+                      if (isClient) {
+                        localStorage.clear();
+                        window.location.href = '/views/login-page/';
+                      }
                     }}
                   >
                     <LogOut size={18} className="group-hover:translate-x-0.5 transition-transform" />
