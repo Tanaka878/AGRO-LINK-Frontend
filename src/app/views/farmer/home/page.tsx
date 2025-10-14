@@ -121,12 +121,12 @@ export default function HomePage() {
 
         {/* Recent Orders & Messages */}
         <div className="bg-white shadow-md p-4 rounded-lg border border-[#E0E0E0] space-y-3">
-          <h2 className="font-semibold text-[#2E7D32]">RECENT ORDERS & MESSAGES</h2>
+          <h2 className="font-semibold text-[#2E7D32]">RECENT ORDERS </h2>
           <ul className="list-decimal list-inside text-[#6D4C41] space-y-1">
             {!isMounted ? (
               <li className="text-gray-500">Loading...</li>
             ) : orders.length === 0 ? (
-              <li className="text-gray-500">Nothing to display</li>
+              <li className="text-gray-500">No Orders Yet</li>
             ) : (
               orders.map((order) => (
                 <li key={order.id}>
