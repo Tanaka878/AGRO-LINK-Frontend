@@ -2,200 +2,281 @@
 import React, { useState, useEffect } from 'react';
 import Base_URL from '@/app/api/route';
 import { Order } from '../../Interface/Orders';
+import OrderStatusChart from '@/app/Charts/OrderStatusChart';
+import TopSellingProductsChart from '@/app/Charts/TopSellingProducts';
 
 export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [productType, setProductType] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-
-  const [farmerEmail, setFarmerEmail] = useState(''); 
-  const [farmerName, setFarmerName] = useState('Farmer'); 
+  const [farmerEmail, setFarmerEmail] = useState<string | null>(null);
+  const [farmerName, setFarmerName] = useState<string>('Farmer');
   const [orders, setOrders] = useState<Order[]>([]);
-  const [isMounted, setIsMounted] = useState(false);
+  const [stats, setStats] = useState({ pendingOrders: 0, listedProducts: 0 });
+  const [loading, setLoading] = useState(true);
 
-  // Run only on client - single useEffect for mounting
   useEffect(() => {
-    setIsMounted(true);
-    const email = localStorage.getItem('email') || '';
-    const name = localStorage.getItem('name') || 'Farmer';
-    setFarmerEmail(email);
-    setFarmerName(name);
+    if (typeof window !== 'undefined') {
+      const storedEmail = localStorage.getItem('email');
+      const storedName = localStorage.getItem('name');
+      if (storedEmail) setFarmerEmail(storedEmail);
+      if (storedName) setFarmerName(storedName);
+      setLoading(false);
+    }
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage('');
+  useEffect(() => {
+    if (!farmerEmail) return;
+    fetchStatistics();
+    fetchOrders();
+  }, [farmerEmail]);
 
+  const fetchStatistics = async () => {
+    if (!farmerEmail) return;
     try {
-      const response = await fetch(`${Base_URL}/api/listed-products/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productType,
-          quantity: parseInt(quantity, 10),
-          farmerEmail,
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to list product');
-
-      setMessage('✅ Product listed successfully!');
-      setProductType('');
-      setQuantity('');
-    } catch (error) {
-      if (error instanceof Error) {
-        setMessage(`❌ ${error.message}`);
-      } else {
-        setMessage('❌ An unexpected error occurred');
-      }
-    } finally {
-      setLoading(false);
+      const res = await fetch(`${Base_URL}/api/farmers/statistics/${farmerEmail}`);
+      if (!res.ok) throw new Error('Failed to fetch statistics');
+      const data = await res.json();
+      setStats(data);
+    } catch (err) {
+      console.error('Error fetching statistics:', err);
     }
   };
 
-  // Fetch orders after farmerEmail is set
-  useEffect(() => {
-    if (!farmerEmail || !isMounted) return;
+  const fetchOrders = async () => {
+    if (!farmerEmail) return;
+    try {
+      const res = await fetch(`${Base_URL}/api/orders/farmer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: farmerEmail }),
+      });
+      if (!res.ok) throw new Error('Failed to fetch orders');
+      const data = await res.json();
+      setOrders(data);
+    } catch (err) {
+      console.error('Failed to fetch orders', err);
+    }
+  };
 
-    const fetchOrders = async () => {
-      try {
-        const res = await fetch(`${Base_URL}/api/orders/farmer`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: farmerEmail }),
-        });
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
 
-        if (!res.ok) throw new Error('Failed to fetch orders');
+  // ✅ Handle submitting the "List Product" form
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!farmerEmail) return;
 
-        const data = await res.json();
-        setOrders(data);
-      } catch (err) {
-        console.error('Failed to fetch orders', err);
-      }
-    };
+    const productType = (document.getElementById('productType') as HTMLInputElement).value;
+    const quantity = Number((document.getElementById('quantity') as HTMLInputElement).value);
+    const price = Number((document.getElementById('price') as HTMLInputElement).value);
+    const description = (document.getElementById('description') as HTMLTextAreaElement).value;
 
-    fetchOrders();
-  }, [farmerEmail, isMounted]);
+    try {
+      const res = await fetch(`${Base_URL}/api/listed-products/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productType, quantity, price, description, farmerEmail }),
+      });
+
+      if (!res.ok) throw new Error('Failed to list product');
+
+      setMessage('✅ Product listed successfully!');
+      setIsModalOpen(false);
+      fetchStatistics(); // Refresh stats
+    } catch (err) {
+      console.error(err);
+      setMessage('❌ Failed to list product.');
+    }
+  };
+
+  if (loading || farmerEmail === null) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="text-gray-600 mt-4">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 relative">
-      {/* Top Section */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-[#2E7D32]">
-          Good Morning, {farmerName}!
-        </h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-[#FBC02D] text-white px-4 py-2 rounded-lg font-semibold hover:bg-yellow-500 transition"
-        >
-          SELL PRODUCE
-        </button>
-      </div>
-
-      {/* Stats Row */}
-      <div className="flex gap-6 text-[#6D4C41]">
-        <div>Pending Orders: 3</div>
-        <div>Unread Messages: 5</div>
-        <div>Live Listings: 12</div>
-      </div>
-
-      {/* Dashboard */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Market Insights */}
-        <div className="bg-white shadow-md p-4 rounded-lg border border-[#E0E0E0] space-y-3">
-          <h2 className="font-semibold text-[#2E7D32]">MARKET INSIGHTS</h2>
-          <ul className="list-disc list-inside text-[#6D4C41]">
-            <li>Tomato Price +15% 🔺 (Nairobi)</li>
-            <li>Alert: High demand for maize in Eldoret</li>
-          </ul>
+    <div className="min-h-screen bg-white p-6 space-y-6">
+      {/* Header Section */}
+      <div className="border-b pb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 mb-1">
+              {getGreeting()}, {farmerName}
+            </h1>
+            <p className="text-gray-600 text-sm">Dashboard Overview</p>
+          </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="bg-[#4CAF50] text-white px-3 py-1 rounded-md hover:bg-[#2E7D32] transition"
+            className="bg-gray-900 hover:bg-gray-800 text-white px-5 py-2.5 rounded font-medium transition-colors"
           >
-            List Now
+            List Product
           </button>
         </div>
+      </div>
 
-        {/* Recent Orders & Messages */}
-        <div className="bg-white shadow-md p-4 rounded-lg border border-[#E0E0E0] space-y-3">
-          <h2 className="font-semibold text-[#2E7D32]">RECENT ORDERS </h2>
-          <ul className="list-decimal list-inside text-[#6D4C41] space-y-1">
-            {!isMounted ? (
-              <li className="text-gray-500">Loading...</li>
-            ) : orders.length === 0 ? (
-              <li className="text-gray-500">No Orders Yet</li>
-            ) : (
-              orders.map((order) => (
-                <li key={order.id}>
-                  {order.quantity}kg {order.productType} - Buyer: {order.buyerName || 'N/A'} | Status: {order.status === 'COLLECTED' ? 'Collected ✅' : 'Pending ⏳'}
-                </li>
-              ))
-            )}
-          </ul>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="border rounded p-6">
+          <p className="text-sm text-gray-600 mb-2">Pending Orders</p>
+          <p className="text-3xl font-semibold text-gray-900">{stats.pendingOrders}</p>
+        </div>
+        <div className="border rounded p-6">
+          <p className="text-sm text-gray-600 mb-2">Listed Products</p>
+          <p className="text-3xl font-semibold text-gray-900">{stats.listedProducts}</p>
+        </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <OrderStatusChart />
+        <TopSellingProductsChart />
+      </div>
+
+      {/* Orders List Section */}
+      <div className="border rounded">
+        <div className="px-6 py-4 border-b bg-gray-50">
+          <h2 className="text-lg font-semibold text-gray-900">Recent Orders</h2>
+        </div>
+        <div className="p-6">
+          {orders.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No orders available</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {orders.map((order, index) => (
+                <div
+                  key={order.id}
+                  className="flex items-center justify-between p-4 border rounded hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="text-gray-400 text-sm font-medium w-6">{index + 1}</div>
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {order.quantity}kg {order.productType}
+                      </p>
+                      <p className="text-sm text-gray-600">{order.buyerName || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div>
+                    {order.status === 'COLLECTED' ? (
+                      <span className="inline-block bg-green-50 text-green-700 px-3 py-1 rounded text-sm font-medium">
+                        Collected
+                      </span>
+                    ) : (
+                      <span className="inline-block bg-orange-50 text-orange-700 px-3 py-1 rounded text-sm font-medium">
+                        Pending
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-          <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
-            <h2 className="text-xl font-bold text-[#2E7D32] mb-4 text-center">
-              List Your Product
-            </h2>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+          <div className="bg-white rounded w-full max-w-md max-h-[90vh] overflow-y-auto shadow-lg">
+            <div className="p-6 border-b bg-gray-50 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">List Product</h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition p-1"
+                aria-label="Close modal"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-[#6D4C41] font-medium mb-1">
-                  Product Type
-                </label>
-                <input
-                  type="text"
-                  value={productType}
-                  onChange={(e) => setProductType(e.target.value)}
-                  required
-                  className="w-full border text-black border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#4CAF50] outline-none"
-                  placeholder="e.g. Maize, Tomatoes"
-                />
-              </div>
+            <div className="p-6">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label htmlFor="productType" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Product Type
+                  </label>
+                  <input
+                    type="text"
+                    id="productType"
+                    className="w-full px-3 py-2 border border-gray-300 text-black rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                    placeholder="e.g., Tomatoes, Maize"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Quantity (kg)
+                  </label>
+                  <input
+                    type="number"
+                    id="quantity"
+                    className="w-full px-3 py-2 border border-gray-300 text-black rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                    placeholder="0"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Price per kg ($)
+                  </label>
+                  <input
+                    type="number"
+                    id="price"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 text-black rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Description
+                  </label>
+                  <textarea
+                    id="description"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 text-black rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900 resize-none"
+                    placeholder="Add product details..."
+                  ></textarea>
+                </div>
 
-              <div>
-                <label className="block text-[#6D4C41] font-medium mb-1">
-                  Quantity
-                </label>
-                <input
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  required
-                  className="w-full border text-black border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#4CAF50] outline-none"
-                  placeholder="e.g. 50"
-                />
-              </div>
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded font-medium hover:bg-gray-800 transition-colors"
+                  >
+                    List Product
+                  </button>
+                </div>
+              </form>
 
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-gray-300 rounded-lg text-gray-800 hover:bg-gray-400 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 bg-[#4CAF50] text-white rounded-lg hover:bg-[#2E7D32] transition"
-                >
-                  {loading ? 'Listing...' : 'Submit'}
-                </button>
-              </div>
-            </form>
-
-            {message && (
-              <p className="text-center mt-3 text-sm text-[#6D4C41]">{message}</p>
-            )}
+              {message && (
+                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
+                  <p className="text-sm text-green-700 text-center">{message}</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
