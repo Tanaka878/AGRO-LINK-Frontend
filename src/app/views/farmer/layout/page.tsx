@@ -6,13 +6,15 @@ import {
   ShoppingCart,
   MessageCircle,
   Settings,
+  Package, // Added for Orders icon
 } from 'lucide-react';
 import Navbar from '../../navbar/page';
-import HomePage from '../home/page'; // import your HomePage
+import HomePage from '../home/page';
 import MyFarmPage from '../my-farm/page';
 import MarketPage from '../market/page';
 import MessagesPage from '../message/page';
 import SettingsPage from '../settings/page';
+import OrdersPage from '../orders/page';
 
 interface DashboardLayoutProps {
   children?: ReactNode;
@@ -25,11 +27,12 @@ export default function DashboardLayout({ }: DashboardLayoutProps) {
     { name: 'Home', icon: <Home size={20} /> },
     { name: 'My Farm', icon: <MapPin size={20} /> },
     { name: 'Market', icon: <ShoppingCart size={20} /> },
+    { name: 'Orders', icon: <Package size={20} /> }, // ✅ Added Orders
     { name: 'Messages', icon: <MessageCircle size={20} /> },
     { name: 'Settings', icon: <Settings size={20} /> },
   ];
 
-  // Render content based on active menu item
+  // ✅ Render content based on active menu item
   const renderContent = () => {
     switch (active) {
       case 'Home':
@@ -38,6 +41,8 @@ export default function DashboardLayout({ }: DashboardLayoutProps) {
         return <MyFarmPage />;
       case 'Market':
         return <MarketPage />;
+      case 'Orders': // ✅ Added Orders route
+        return <OrdersPage />;
       case 'Messages':
         return <MessagesPage />;
       case 'Settings':
