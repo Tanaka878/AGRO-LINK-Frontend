@@ -5,6 +5,6 @@ export interface Order {
   quantity: number;
   farmerEmail: string;
   buyerName?: string; // optional if no buyer yet
-  status: 'PENDING' | 'COLLECTED';
+  status: 'PENDING' | 'COMPLETED' | 'CANCELLED';
   orderTime: string; // ISO string from backend
 }

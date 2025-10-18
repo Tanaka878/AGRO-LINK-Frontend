@@ -148,41 +148,41 @@ export default function HomePage() {
           <h2 className="text-lg font-semibold text-gray-900">Recent Orders</h2>
         </div>
         <div className="p-6">
-          {orders.length === 0 ? (
+          {(() => {
+        const pending = orders.filter((o) => o.status !== 'COMPLETED').slice(0, 3);
+        if (pending.length === 0) {
+          return (
             <div className="text-center py-12">
-              <p className="text-gray-500">No orders available</p>
+          <p className="text-gray-500">No pending orders</p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {orders.map((order, index) => (
-                <div
-                  key={order.id}
-                  className="flex items-center justify-between p-4 border rounded hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="text-gray-400 text-sm font-medium w-6">{index + 1}</div>
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {order.quantity}kg {order.productType}
-                      </p>
-                      <p className="text-sm text-gray-600">{order.buyerName || 'N/A'}</p>
-                    </div>
-                  </div>
-                  <div>
-                    {order.status === 'COLLECTED' ? (
-                      <span className="inline-block bg-green-50 text-green-700 px-3 py-1 rounded text-sm font-medium">
-                        Collected
-                      </span>
-                    ) : (
-                      <span className="inline-block bg-orange-50 text-orange-700 px-3 py-1 rounded text-sm font-medium">
-                        Pending
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
+          );
+        }
+        return (
+          <div className="space-y-3">
+            {pending.map((order, idx) => (
+          <div
+            key={order.id ?? `${order.productType}-${idx}`}
+            className="flex items-center justify-between p-4 border rounded hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-4">
+              <div className="text-gray-400 text-sm font-medium w-6">{idx + 1}</div>
+              <div>
+            <p className="font-medium text-gray-900">
+              {order.quantity}kg {order.productType}
+            </p>
+            <p className="text-sm text-gray-600">{order.buyerName || 'N/A'}</p>
+              </div>
             </div>
-          )}
+            <div>
+              <span className="inline-block bg-orange-50 text-orange-700 px-3 py-1 rounded text-sm font-medium">
+            Pending
+              </span>
+            </div>
+          </div>
+            ))}
+          </div>
+        );
+          })()}
         </div>
       </div>
 

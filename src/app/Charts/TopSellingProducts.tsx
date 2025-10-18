@@ -46,7 +46,16 @@ export default function TopSellingProductsChart() {
         if (!res.ok) throw new Error("Failed to fetch statistics");
         
         const stats = await res.json();
-        setData(stats.topSellingProducts || []);
+
+        // Transform the Map<string, number> from backend to ProductStat[]
+        const topSellingProducts: ProductStat[] = stats.topSellingProducts
+          ? Object.entries(stats.topSellingProducts).map(([productType, totalQuantity]) => ({
+              productType,
+              totalQuantity: totalQuantity as number,
+            }))
+          : [];
+
+        setData(topSellingProducts);
       } catch (err) {
         console.error("Error fetching top-selling products:", err);
         setError("Failed to load products");
@@ -60,7 +69,7 @@ export default function TopSellingProductsChart() {
 
   const totalQuantity = data.reduce((sum, item) => sum + item.totalQuantity, 0);
   const topProduct = data.length > 0 ? data.reduce((prev, current) => 
-    (prev.totalQuantity > current.totalQuantity) ? prev : current
+    (prev.totalQuantity > current.totalQuantity ? prev : current)
   ) : null;
 
   return (
