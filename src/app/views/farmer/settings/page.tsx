@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { User, Bell, Lock, Sliders, ChevronRight } from 'lucide-react';
 
 export default function SettingsPage() {
-  const [hoveredCard, setHoveredCard] = useState(null);
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
   const settingsCards = [
     {
