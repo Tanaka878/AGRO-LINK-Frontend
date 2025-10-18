@@ -47,17 +47,35 @@ export default function OrdersPage() {
 
   const markAsCollected = async (orderId: number) => {
     try {
-      const response = await fetch(`${BASE_URL}/api/orders/update-status/${orderId}?status=COLLECTED`, {
+      const response = await fetch(`${BASE_URL}/api/orders/update-status/${orderId}?status=COMPLETED`, {
         method: 'PUT',
       });
 
       if (!response.ok) throw new Error('Failed to update order status');
 
       setMessage('Order marked as collected successfully ✅');
-      fetchOrders(); // refresh list
+      fetchOrders();
     } catch (err) {
-      console.error('Error updating order:', err);
+      console.error(err);
       setMessage('Failed to mark as collected ❌');
+    } finally {
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  const cancelOrder = async (orderId: number) => {
+    try {
+      const response = await fetch(`${BASE_URL}/api/orders/cancel/${orderId}`, {
+        method: 'PUT',
+      });
+
+      if (!response.ok) throw new Error('Failed to cancel order');
+
+      setMessage('Order cancelled successfully ❌');
+      fetchOrders();
+    } catch (err) {
+      console.error(err);
+      setMessage('Failed to cancel order ❌');
     } finally {
       setTimeout(() => setMessage(null), 3000);
     }
@@ -106,7 +124,9 @@ export default function OrdersPage() {
                       className={`inline-block px-2 py-1 text-sm font-semibold rounded ${
                         order.status === 'PENDING'
                           ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
+                          : order.status === 'COLLECTED'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
                       }`}
                     >
                       {order.status}
@@ -114,12 +134,20 @@ export default function OrdersPage() {
                   </td>
                   <td className="py-3 px-4 flex gap-2">
                     {order.status === 'PENDING' && (
-                      <button
-                        onClick={() => markAsCollected(order.id)}
-                        className="px-3 py-1.5 text-sm bg-green-700 hover:bg-green-800 text-white rounded transition"
-                      >
-                        Mark as Collected
-                      </button>
+                      <>
+                        <button
+                          onClick={() => markAsCollected(order.id)}
+                          className="px-3 py-1.5 text-sm bg-green-700 hover:bg-green-800 text-white rounded transition"
+                        >
+                          Mark as Collected
+                        </button>
+                        <button
+                          onClick={() => cancelOrder(order.id)}
+                          className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded transition"
+                        >
+                          Cancel Order
+                        </button>
+                      </>
                     )}
                     <button
                       onClick={() => setSelectedOrder(order)}
@@ -165,7 +193,11 @@ export default function OrdersPage() {
                 <span className="font-semibold">Status:</span>{' '}
                 <span
                   className={`inline-block px-2 py-1 text-sm font-semibold rounded ${
-                    selectedOrder.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                    selectedOrder.status === 'PENDING'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : selectedOrder.status === 'COLLECTED'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
                   }`}
                 >
                   {selectedOrder.status}
@@ -176,7 +208,29 @@ export default function OrdersPage() {
                 {new Date(selectedOrder.orderTime).toLocaleString()}
               </p>
             </div>
-            <div className="bg-gray-50 px-6 py-4 flex justify-end">
+            <div className="bg-gray-50 px-6 py-4 flex justify-end gap-2">
+              {selectedOrder.status === 'PENDING' && (
+                <>
+                  <button
+                    onClick={() => {
+                      markAsCollected(selectedOrder.id);
+                      setSelectedOrder(null);
+                    }}
+                    className="bg-green-700 text-white px-4 py-2 rounded-md hover:bg-green-800 transition-colors font-medium text-sm"
+                  >
+                    Mark as Collected
+                  </button>
+                  <button
+                    onClick={() => {
+                      cancelOrder(selectedOrder.id);
+                      setSelectedOrder(null);
+                    }}
+                    className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors font-medium text-sm"
+                  >
+                    Cancel Order
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => setSelectedOrder(null)}
                 className="bg-slate-700 text-white px-6 py-2 rounded-md hover:bg-slate-800 transition-colors font-medium text-sm"
