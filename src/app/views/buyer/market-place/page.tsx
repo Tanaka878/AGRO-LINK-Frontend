@@ -14,13 +14,47 @@ function FarmerProfileModal({
   farmerEmail,
   comments,
   onClose,
+  onNewComment,
 }: {
   farmerEmail: string;
   comments: string[] | null;
   onClose: () => void;
+  onNewComment: (newComment: string) => void;
 }) {
+  const [newComment, setNewComment] = useState('');
   const safeComments = comments || [];
-  
+
+  const handleSubmit = async () => {
+    const authorName = localStorage.getItem('userName') || 'Anonymous';
+
+    if (!newComment.trim()) return;
+
+    try {
+      const encodedEmail = encodeURIComponent(farmerEmail);
+      const response = await fetch(`http://localhost:8080/api/farmers/${encodedEmail}/addComment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: newComment,
+          authorName,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save comment');
+      }
+
+      const savedComment = await response.text();
+      onNewComment(newComment);
+      setNewComment(savedComment);
+    } catch (error) {
+      console.error(error);
+      alert('Failed to save comment. Please try again.');
+    }
+  };
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 p-4">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg overflow-hidden">
@@ -32,11 +66,11 @@ function FarmerProfileModal({
             <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Email Address</p>
             <p className="text-gray-800 font-medium">{farmerEmail || 'N/A'}</p>
           </div>
-          
+
           <div>
             <h3 className="text-sm text-gray-500 uppercase tracking-wide mb-3">Comments & Reviews</h3>
             {safeComments.length > 0 ? (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
                 {safeComments.map((c, i) => (
                   <div key={i} className="bg-gray-50 rounded-md p-3 text-sm text-gray-700">
                     {c}
@@ -44,10 +78,27 @@ function FarmerProfileModal({
                 ))}
               </div>
             ) : (
-              <p className="text-gray-400 text-sm italic">No comments available.</p>
+              <p className="text-gray-400 text-sm italic mb-4">No comments available.</p>
             )}
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Leave a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-400"
+              />
+              <button
+                onClick={handleSubmit}
+                className="bg-slate-700 text-white px-4 py-2 rounded-md hover:bg-slate-800 transition-colors font-medium text-sm"
+              >
+                Submit
+              </button>
+            </div>
           </div>
         </div>
+
         <div className="bg-gray-50 px-6 py-4 flex justify-end">
           <button
             onClick={onClose}
@@ -70,14 +121,13 @@ export default function MarketPlace() {
     fetch('http://localhost:8080/api/listed-products/all')
       .then((res) => res.json())
       .then((data: Product[]) => {
-        // Ensure data is an array and normalize null values
-        const normalizedData = Array.isArray(data) 
-          ? data.map(product => ({
+        const normalizedData = Array.isArray(data)
+          ? data.map((product) => ({
               ...product,
               farmerComments: product.farmerComments || [],
               farmerEmail: product.farmerEmail || 'Unknown',
               productType: product.productType || 'Unknown Product',
-              quantity: product.quantity || 0
+              quantity: product.quantity || 0,
             }))
           : [];
         setProducts(normalizedData);
@@ -128,7 +178,6 @@ export default function MarketPlace() {
               key={product.id}
               className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow overflow-hidden flex flex-col"
             >
-              {/* Product Image */}
               <div className="relative w-full h-44">
                 <Image
                   src={getProductImage(product.productType)}
@@ -140,15 +189,9 @@ export default function MarketPlace() {
               </div>
 
               <div className="p-4 flex flex-col flex-grow">
-                {/* Product Info */}
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                  {product.productType}
-                </h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Available: {product.quantity} units
-                </p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">{product.productType}</h3>
+                <p className="text-sm text-gray-600 mb-3">Available: {product.quantity} units</p>
 
-                {/* Farmer Profile */}
                 <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-100">
                   <Image
                     src={farmerDefaultImage}
@@ -163,7 +206,6 @@ export default function MarketPlace() {
                   </div>
                 </div>
 
-                {/* Price and Action */}
                 <div className="mt-auto">
                   <p className="text-xl font-bold text-gray-900 mb-3">
                     ${Math.floor(Math.random() * 40) + 10}
@@ -184,12 +226,27 @@ export default function MarketPlace() {
         )}
       </div>
 
-      {/* Modal for Farmer Profile */}
       {selectedFarmer && (
         <FarmerProfileModal
           farmerEmail={selectedFarmer.farmerEmail}
           comments={selectedFarmer.farmerComments}
           onClose={() => setSelectedFarmer(null)}
+          onNewComment={(newComment) => {
+            setSelectedFarmer((prev) => {
+              if (!prev) return null;
+              return {
+                ...prev,
+                farmerComments: [...(prev.farmerComments || []), newComment],
+              };
+            });
+            setProducts((prev) =>
+              prev.map((p) =>
+                p.id === selectedFarmer.id
+                  ? { ...p, farmerComments: [...(p.farmerComments || []), newComment] }
+                  : p
+              )
+            );
+          }}
         />
       )}
     </div>
