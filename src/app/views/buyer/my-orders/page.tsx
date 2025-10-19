@@ -10,7 +10,7 @@ interface Order {
   farmerEmail: string;
   status: string;
   orderTime: string;
-  proofOfPaymentUrl?: string; // optional for displaying uploaded image
+  proofOfPaymentUrl?: string;
 }
 
 export default function MyOrders() {
@@ -20,29 +20,64 @@ export default function MyOrders() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Fetch orders
-  useEffect(() => {
-    const buyerEmail = localStorage.getItem('email');
-    if (!buyerEmail) {
-      setLoading(false);
-      return;
+  // Fetch proof for a single order using GET request with query parameter
+  const fetchProofForOrder = async (orderId: number): Promise<string | null> => {
+    try {
+      const res = await fetch(`/api/orders/upload-proof?orderId=${orderId}`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.proofUrl;
+      }
+      return null;
+    } catch (err) {
+      console.log('No proof found for order:', orderId);
+      return null;
     }
+  };
 
-    const encodedEmail = encodeURIComponent(buyerEmail);
-    fetch(`http://localhost:8080/api/orders/buyer/${encodedEmail}`)
-      .then((res) => res.json())
-      .then((data: Order[]) => {
-        setOrders(data);
+  // Fetch orders and their proofs
+  useEffect(() => {
+    const fetchOrdersAndProofs = async () => {
+      const buyerEmail = localStorage.getItem('email');
+      if (!buyerEmail) {
         setLoading(false);
-      })
-      .catch((err) => {
+        return;
+      }
+
+      try {
+        const encodedEmail = encodeURIComponent(buyerEmail);
+        const ordersRes = await fetch(`http://localhost:8080/api/orders/buyer/${encodedEmail}`);
+        
+        if (!ordersRes.ok) {
+          throw new Error('Failed to fetch orders');
+        }
+        
+        const ordersData: Order[] = await ordersRes.json();
+        
+        // Set orders immediately (without proofs)
+        setOrders(ordersData);
+        
+        // Then load proofs for each order individually
+        const ordersWithProofs = await Promise.all(
+          ordersData.map(async (order) => {
+            const proofUrl = await fetchProofForOrder(order.id);
+            return { ...order, proofOfPaymentUrl: proofUrl || undefined };
+          })
+        );
+        
+        setOrders(ordersWithProofs);
+      } catch (err) {
         console.error('Failed to fetch orders:', err);
         setOrders([]);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchOrdersAndProofs();
   }, []);
 
-  // Handle file upload
+  // Handle proof upload using POST request
   const handleFileUpload = async () => {
     if (!selectedOrder || !selectedFile) return;
 
@@ -52,24 +87,34 @@ export default function MyOrders() {
 
     try {
       setUploading(true);
-      const res = await fetch('http://localhost:8080/api/orders/upload-proof', {
+
+      const res = await fetch('/api/orders/upload-proof', {
         method: 'POST',
         body: formData,
       });
 
-      if (res.ok) {
-        alert('Proof of payment uploaded successfully!');
-        setSelectedFile(null);
-        const updatedOrders = orders.map((o) =>
-          o.id === selectedOrder.id ? { ...o, proofOfPaymentUrl: 'uploaded' } : o
-        );
-        setOrders(updatedOrders);
-      } else {
-        alert('Failed to upload proof. Please try again.');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Upload failed');
       }
-    } catch (err) {
+
+      const data = await res.json();
+
+      alert('✅ Proof of payment uploaded successfully!');
+      setSelectedFile(null);
+      setSelectedOrder(null);
+
+      // Update proof URL locally in state
+      const updatedOrders = orders.map((o) =>
+        o.id === selectedOrder.id
+          ? { ...o, proofOfPaymentUrl: data.proofUrl }
+          : o
+      );
+      setOrders(updatedOrders);
+      
+    } catch (err: any) {
       console.error('Upload error:', err);
-      alert('An error occurred while uploading.');
+      alert(err.message || 'An error occurred while uploading.');
     } finally {
       setUploading(false);
     }
@@ -98,14 +143,19 @@ export default function MyOrders() {
             className="bg-white shadow rounded p-4 flex justify-between items-center border border-[#E0E0E0]"
           >
             <div className="flex flex-col">
-              <span className="font-semibold">#{order.id} - {order.productType}</span>
+              <span className="font-semibold">
+                #{order.id} - {order.productType}
+              </span>
               <span className="text-gray-500 text-sm">{order.quantity} pcs</span>
             </div>
             <div className="flex flex-col items-end">
               <span
                 className={`font-semibold ${
-                  order.status === 'PENDING' ? 'text-yellow-600' :
-                  order.status === 'CANCELLED' ? 'text-red-600' : 'text-green-600'
+                  order.status === 'PENDING'
+                    ? 'text-yellow-600'
+                    : order.status === 'CANCELLED'
+                    ? 'text-red-600'
+                    : 'text-green-600'
                 }`}
               >
                 {order.status}
@@ -140,12 +190,10 @@ export default function MyOrders() {
               <p><span className="font-semibold">Farmer Email:</span> {selectedOrder.farmerEmail}</p>
               <p>
                 <span className="font-semibold">Status:</span>{' '}
-                <span
-                  className={`font-semibold ${
-                    selectedOrder.status === 'PENDING' ? 'text-yellow-600' :
-                    selectedOrder.status === 'CANCELLED' ? 'text-red-600' : 'text-green-600'
-                  }`}
-                >
+                <span className={`font-semibold ${
+                  selectedOrder.status === 'PENDING' ? 'text-yellow-600' :
+                  selectedOrder.status === 'CANCELLED' ? 'text-red-600' : 'text-green-600'
+                }`}>
                   {selectedOrder.status}
                 </span>
               </p>
@@ -153,29 +201,44 @@ export default function MyOrders() {
               {/* Upload Proof Section */}
               <div className="mt-4 border-t pt-4">
                 <h3 className="font-semibold text-gray-700 mb-2">Upload Proof of Payment</h3>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="mb-2 w-full border border-gray-300 rounded p-2"
-                />
-                <button
-                  onClick={handleFileUpload}
-                  disabled={!selectedFile || uploading}
-                  className={`w-full py-2 rounded-md text-white transition-colors ${
-                    uploading
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-green-600 hover:bg-green-700'
-                  }`}
-                >
-                  {uploading ? 'Uploading...' : 'Upload Proof'}
-                </button>
+
+                {selectedOrder.proofOfPaymentUrl ? (
+                  <div>
+                    <p className="text-green-600 font-medium mb-2">Proof Uploaded ✅</p>
+                    <img
+                      src={selectedOrder.proofOfPaymentUrl}
+                      alt="Proof of Payment"
+                      className="w-40 h-40 object-cover rounded-md border"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      className="mb-2 w-full border border-gray-300 rounded p-2"
+                    />
+                    <button
+                      onClick={handleFileUpload}
+                      disabled={!selectedFile || uploading}
+                      className={`w-full py-2 rounded-md text-white transition-colors ${
+                        uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                      }`}
+                    >
+                      {uploading ? 'Uploading...' : 'Upload Proof'}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
             <div className="bg-gray-50 px-6 py-4 flex justify-end">
               <button
-                onClick={() => setSelectedOrder(null)}
+                onClick={() => {
+                  setSelectedOrder(null);
+                  setSelectedFile(null);
+                }}
                 className="bg-slate-700 text-white px-6 py-2 rounded-md hover:bg-slate-800 transition-colors font-medium text-sm"
               >
                 Close

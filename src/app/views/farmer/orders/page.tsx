@@ -19,6 +19,8 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [proofImage, setProofImage] = useState<string | null>(null);
+  const [loadingProof, setLoadingProof] = useState(false);
 
   const fetchOrders = async () => {
     try {
@@ -41,9 +43,39 @@ export default function OrdersPage() {
     }
   };
 
+  // Fetch proof of payment when an order is selected
+  const fetchProofOfPayment = async (orderId: number) => {
+    try {
+      setLoadingProof(true);
+      setProofImage(null);
+      
+      const response = await fetch(`/api/orders/upload-proof?orderId=${orderId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setProofImage(data.proofUrl);
+      } else {
+        console.log('No proof found for order:', orderId);
+        setProofImage(null);
+      }
+    } catch (err) {
+      console.error('Error fetching proof:', err);
+      setProofImage(null);
+    } finally {
+      setLoadingProof(false);
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  // When selected order changes, fetch its proof
+  useEffect(() => {
+    if (selectedOrder) {
+      fetchProofOfPayment(selectedOrder.id);
+    }
+  }, [selectedOrder]);
 
   const markAsCollected = async (orderId: number) => {
     try {
@@ -77,6 +109,35 @@ export default function OrdersPage() {
       console.error(err);
       setMessage('Failed to cancel order ❌');
     } finally {
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  // Empty function for Confirm Payment - add your logic here
+  const confirmPayment = async (orderId: number) => {
+    try {
+      console.log('Confirming payment for order:', orderId);
+      // Add your confirm payment logic here
+      // Example:
+      // const response = await fetch(`/api/confirm-payment`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ orderId }),
+      // });
+      
+      // if (response.ok) {
+      //   setMessage('Payment confirmed successfully ✅');
+      //   fetchOrders();
+      //   setSelectedOrder(null);
+      // }
+      
+      // For now, just show a message
+      setMessage('Confirm Payment function called for order: ' + orderId);
+      setTimeout(() => setMessage(null), 3000);
+      
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      setMessage('Failed to confirm payment ❌');
       setTimeout(() => setMessage(null), 3000);
     }
   };
@@ -207,6 +268,42 @@ export default function OrdersPage() {
                 <span className="font-semibold">Order Time:</span>{' '}
                 {new Date(selectedOrder.orderTime).toLocaleString()}
               </p>
+
+              {/* Proof of Payment Section */}
+              <div className="mt-4 border-t pt-4">
+                <h3 className="font-semibold text-gray-700 mb-2">Proof of Payment</h3>
+                
+                {loadingProof ? (
+                  <div className="text-gray-500 text-sm">Loading proof of payment...</div>
+                ) : proofImage ? (
+                  <div>
+                    <p className="text-green-600 font-medium mb-2">Proof Available ✅</p>
+                    <img
+                      src={proofImage}
+                      alt="Proof of Payment"
+                      className="w-full max-w-xs h-auto object-cover rounded-md border shadow-sm"
+                    />
+                    <p className="text-gray-500 text-sm mt-2">
+                      Buyer has uploaded proof of payment for this order.
+                    </p>
+                    
+                    {/* Confirm Payment Button - Only show when proof is available */}
+                    <button
+                      onClick={() => confirmPayment(selectedOrder.id)}
+                      className="mt-3 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition-colors font-medium text-sm"
+                    >
+                      Confirm Payment
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-gray-500 text-sm">
+                    <p>No proof of payment uploaded yet.</p>
+                    <p className="text-yellow-600 mt-1">
+                      Waiting for buyer to upload payment proof.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="bg-gray-50 px-6 py-4 flex justify-end gap-2">
               {selectedOrder.status === 'PENDING' && (
@@ -232,7 +329,10 @@ export default function OrdersPage() {
                 </>
               )}
               <button
-                onClick={() => setSelectedOrder(null)}
+                onClick={() => {
+                  setSelectedOrder(null);
+                  setProofImage(null);
+                }}
                 className="bg-slate-700 text-white px-6 py-2 rounded-md hover:bg-slate-800 transition-colors font-medium text-sm"
               >
                 Close
