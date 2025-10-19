@@ -6,6 +6,7 @@ interface Product {
   id: number;
   productType: string;
   quantity: number;
+  price: number; // Changed from pricePerUnit to price to match your DTO
   farmerEmail: string;
   farmerComments: string[] | null;
 }
@@ -133,7 +134,7 @@ function BuyModal({
 
   const handleConfirmOrder = async () => {
     const buyerEmail = localStorage.getItem('email') || 'anonymous@example.com';
-    const pricePerUnit = Math.floor(Math.random() * 40) + 10;
+    const pricePerUnit = product.price; // Use the actual product price from the product
 
     const orderData = {
       productType: product.productType,
@@ -163,13 +164,17 @@ function BuyModal({
     }
   };
 
+  const totalPrice = (quantity * product.price).toFixed(2);
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 p-4">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-6">
         <h2 className="text-xl font-semibold mb-4">Buy {product.productType}</h2>
 
-        <div className="mb-4">
-          <p className="text-gray-600">Available: {product.quantity}</p>
+        <div className="mb-4 space-y-2">
+          <p className="text-gray-600">Available: {product.quantity} units</p>
+          <p className="text-green-600 font-semibold">Price: ${product.price?.toFixed(2)} per unit</p>
+          
           <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
           <input
             type="number"
@@ -179,6 +184,12 @@ function BuyModal({
             onChange={(e) => setQuantity(Number(e.target.value))}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-400"
           />
+          
+          {quantity > 0 && (
+            <p className="text-lg font-semibold text-blue-600">
+              Total: ${totalPrice}
+            </p>
+          )}
         </div>
 
         <div className="mb-4">
@@ -227,6 +238,7 @@ export default function MarketPlace() {
               farmerEmail: product.farmerEmail || 'Unknown',
               productType: product.productType || 'Unknown Product',
               quantity: product.quantity || 0,
+              price: product.price || 0, // Ensure price is included
             }))
           : [];
         setProducts(normalizedData);
@@ -289,7 +301,10 @@ export default function MarketPlace() {
 
               <div className="p-4 flex flex-col flex-grow">
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">{product.productType}</h3>
-                <p className="text-sm text-gray-600 mb-3">Available: {product.quantity} units</p>
+                <p className="text-sm text-gray-600 mb-1">Available: {product.quantity} units</p>
+                <p className="text-green-600 font-semibold mb-3">
+                  ${product.price?.toFixed(2)} per unit
+                </p>
 
                 <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-100">
                   <Image

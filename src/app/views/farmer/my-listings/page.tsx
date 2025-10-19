@@ -5,10 +5,19 @@ interface ListedProduct {
   id: number;
   productType: string;
   quantity: number;
+  pricePerUnit: number; // Add this
   farmerEmail: string;
 }
 
 const BASE_URL = 'http://localhost:8080';
+
+// Predefined list of products
+const PRODUCT_TYPES = [
+  'MAIZE',
+  'TOMATOES', 
+  'BEANS',
+  'BEEF'
+];
 
 export default function MyProducts() {
   const [products, setProducts] = useState<ListedProduct[]>([]);
@@ -18,6 +27,7 @@ export default function MyProducts() {
   const [newProduct, setNewProduct] = useState({
     productType: '',
     quantity: '',
+    pricePerUnit: '', // Add this
   });
 
   // Fetch farmer's products
@@ -89,9 +99,15 @@ export default function MyProducts() {
         return;
       }
 
+      if (!newProduct.productType) {
+        setMessage('Please select a product type ❌');
+        return;
+      }
+
       const productData = {
         productType: newProduct.productType,
         quantity: parseInt(newProduct.quantity),
+        pricePerUnit: parseFloat(newProduct.pricePerUnit), // Add this
         farmerEmail: farmerEmail,
       };
 
@@ -112,7 +128,7 @@ export default function MyProducts() {
       setMessage('Product added successfully ✅');
       setProducts([...products, savedProduct]);
       setShowAddForm(false);
-      setNewProduct({ productType: '', quantity: '' });
+      setNewProduct({ productType: '', quantity: '', pricePerUnit: '' });
       
     } catch (err) {
       console.error('Error adding product:', err);
@@ -177,6 +193,12 @@ export default function MyProducts() {
                   <span className="font-medium">Quantity:</span> {product.quantity} units
                 </p>
                 <p className="text-gray-600">
+                  <span className="font-medium">Price per Unit:</span> ${product.pricePerUnit?.toFixed(2)}
+                </p>
+                <p className="text-gray-600">
+                  <span className="font-medium">Total Value:</span> ${(product.quantity * product.pricePerUnit)?.toFixed(2)}
+                </p>
+                <p className="text-gray-600">
                   <span className="font-medium">Farmer Email:</span> {product.farmerEmail}
                 </p>
               </div>
@@ -207,15 +229,20 @@ export default function MyProducts() {
                 <label htmlFor="productType" className="block text-sm font-medium text-gray-700 mb-1">
                   Product Type
                 </label>
-                <input
-                  type="text"
+                <select
                   id="productType"
                   required
                   value={newProduct.productType}
                   onChange={(e) => setNewProduct({ ...newProduct, productType: e.target.value })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="e.g., Tomatoes, Potatoes, etc."
-                />
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                >
+                  <option value="">Select a product type</option>
+                  {PRODUCT_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
               </div>
               
               <div>
@@ -234,12 +261,29 @@ export default function MyProducts() {
                 />
               </div>
 
+              <div>
+                <label htmlFor="pricePerUnit" className="block text-sm font-medium text-gray-700 mb-1">
+                  Price per Unit ($)
+                </label>
+                <input
+                  type="number"
+                  id="pricePerUnit"
+                  required
+                  min="0.01"
+                  step="0.01"
+                  value={newProduct.pricePerUnit}
+                  onChange={(e) => setNewProduct({ ...newProduct, pricePerUnit: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="Enter price per unit"
+                />
+              </div>
+
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddForm(false);
-                    setNewProduct({ productType: '', quantity: '' });
+                    setNewProduct({ productType: '', quantity: '', pricePerUnit: '' });
                   }}
                   className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors font-medium text-sm"
                 >

@@ -115,12 +115,7 @@ export default function HomePage() {
             </h1>
             <p className="text-gray-600 text-sm">Dashboard Overview</p>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-gray-900 hover:bg-gray-800 text-white px-5 py-2.5 rounded font-medium transition-colors"
-          >
-            List Product
-          </button>
+      
         </div>
       </div>
 

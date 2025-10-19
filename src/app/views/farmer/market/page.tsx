@@ -6,6 +6,7 @@ interface ListedProduct {
   id: number;
   productType: string;
   quantity: number;
+  price: number; // Added price field
   farmerEmail: string;
   farmerComments: string[];
 }
@@ -123,11 +124,38 @@ export default function MarketPage() {
                       </span>
                     </div>
                     
-                    <div className="flex items-center gap-2 text-green-700 mb-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+                      {/* Quantity */}
+                      <div className="flex items-center gap-2 text-green-700">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        <div>
+                          <span className="font-bold text-lg">{item.quantity}</span>
+                          <span className="text-sm text-gray-600 ml-1">units</span>
+                        </div>
+                      </div>
+
+                      {/* Price */}
+                      <div className="flex items-center gap-2 text-blue-700">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                        <div>
+                          <span className="font-bold text-lg">${item.price?.toFixed(2)}</span>
+                          <span className="text-sm text-gray-600 ml-1">per unit</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Total Value */}
+                    <div className="flex items-center gap-2 text-purple-700 mb-2">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                       </svg>
-                      <span className="font-bold text-lg">{item.quantity} kg</span>
+                      <div>
+                        <span className="font-bold text-md">Total Value: ${(item.quantity * item.price)?.toFixed(2)}</span>
+                      </div>
                     </div>
 
                     {item.farmerComments && item.farmerComments.length > 0 && (
