@@ -2,11 +2,12 @@
 import React, { ReactNode, useState } from 'react';
 import {
   Home,
+  MonitorCheck,
   MapPin,
   ShoppingCart,
   MessageCircle,
   Settings,
-  Package, // Added for Orders icon
+  Package, 
 } from 'lucide-react';
 import Navbar from '../../navbar/page';
 import HomePage from '../home/page';
@@ -15,6 +16,7 @@ import MarketPage from '../market/page';
 import MessagesPage from '../message/page';
 import SettingsPage from '../settings/page';
 import OrdersPage from '../orders/page';
+import MyProducts from '../my-listings/page';
 
 interface DashboardLayoutProps {
   children?: ReactNode;
@@ -30,6 +32,8 @@ export default function DashboardLayout({ }: DashboardLayoutProps) {
     { name: 'Orders', icon: <Package size={20} /> }, // ✅ Added Orders
     { name: 'Messages', icon: <MessageCircle size={20} /> },
     { name: 'Settings', icon: <Settings size={20} /> },
+        { name: 'Listings', icon: <MonitorCheck size={20} /> },
+
   ];
 
   // ✅ Render content based on active menu item
@@ -47,6 +51,8 @@ export default function DashboardLayout({ }: DashboardLayoutProps) {
         return <MessagesPage />;
       case 'Settings':
         return <SettingsPage />;
+      case 'Listings':
+        return <MyProducts />;
       default:
         return <HomePage />;
     }
