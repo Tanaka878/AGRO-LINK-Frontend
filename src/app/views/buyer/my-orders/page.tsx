@@ -13,12 +13,15 @@ interface Order {
   proofOfPaymentUrl?: string;
 }
 
+const BASE_URL = 'http://localhost:8080';
+
 export default function MyOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   // Fetch proof for a single order using GET request with query parameter
   const fetchProofForOrder = async (orderId: number): Promise<string | null> => {
@@ -32,6 +35,39 @@ export default function MyOrders() {
     } catch (err) {
       console.log('No proof found for order:', orderId);
       return null;
+    }
+  };
+
+  // Delete order function
+  const deleteOrder = async (orderId: number) => {
+    if (!confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BASE_URL}/api/orders/${orderId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete order');
+      }
+
+      setMessage('Order deleted successfully ✅');
+      
+      // Remove the order from local state
+      setOrders(orders.filter(order => order.id !== orderId));
+      
+      // Close modal if the deleted order was selected
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder(null);
+      }
+      
+    } catch (err) {
+      console.error('Error deleting order:', err);
+      setMessage('Failed to delete order ❌');
+    } finally {
+      setTimeout(() => setMessage(null), 3000);
     }
   };
 
@@ -132,6 +168,12 @@ export default function MyOrders() {
     <div className="p-6 bg-[#FAFAFA] min-h-screen">
       <h2 className="text-2xl font-bold text-[#2E7D32] mb-4">My Orders</h2>
 
+      {message && (
+        <div className="mb-4 p-3 rounded bg-green-50 border border-green-200 text-green-900 text-sm text-center">
+          {message}
+        </div>
+      )}
+
       {orders.length === 0 && (
         <p className="text-gray-500">You have not placed any orders yet.</p>
       )}
@@ -164,12 +206,20 @@ export default function MyOrders() {
                 {new Date(order.orderTime).toLocaleDateString()}
               </span>
             </div>
-            <button
-              onClick={() => setSelectedOrder(order)}
-              className="ml-4 bg-slate-700 text-white px-3 py-1 rounded-md hover:bg-slate-800 transition-colors text-sm"
-            >
-              View Order
-            </button>
+            <div className="flex gap-2 ml-4">
+              <button
+                onClick={() => setSelectedOrder(order)}
+                className="bg-slate-700 text-white px-3 py-1 rounded-md hover:bg-slate-800 transition-colors text-sm"
+              >
+                View Order
+              </button>
+              <button
+                onClick={() => deleteOrder(order.id)}
+                className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 transition-colors text-sm"
+              >
+                Delete
+              </button>
+            </div>
           </li>
         ))}
       </ul>
@@ -233,7 +283,13 @@ export default function MyOrders() {
               </div>
             </div>
 
-            <div className="bg-gray-50 px-6 py-4 flex justify-end">
+            <div className="bg-gray-50 px-6 py-4 flex justify-between">
+              <button
+                onClick={() => deleteOrder(selectedOrder.id)}
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors font-medium text-sm"
+              >
+                Delete Order
+              </button>
               <button
                 onClick={() => {
                   setSelectedOrder(null);

@@ -10,6 +10,7 @@ interface Order {
   buyerEmail: string;
   status: string;
   orderTime: string;
+  paymentStatus?: string; // Add payment status to the interface
 }
 
 const BASE_URL = 'http://localhost:8080'; // adjust if needed
@@ -113,31 +114,27 @@ export default function OrdersPage() {
     }
   };
 
-  // Empty function for Confirm Payment - add your logic here
+  // Complete function for Confirm Payment
   const confirmPayment = async (orderId: number) => {
     try {
       console.log('Confirming payment for order:', orderId);
-      // Add your confirm payment logic here
-      // Example:
-      // const response = await fetch(`/api/confirm-payment`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ orderId }),
-      // });
       
-      // if (response.ok) {
-      //   setMessage('Payment confirmed successfully ✅');
-      //   fetchOrders();
-      //   setSelectedOrder(null);
-      // }
-      
-      // For now, just show a message
-      setMessage('Confirm Payment function called for order: ' + orderId);
-      setTimeout(() => setMessage(null), 3000);
+      const response = await fetch(`${BASE_URL}/api/orders/update-payment-status/${orderId}?paymentStatus=PAID`, {
+        method: 'PUT',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to confirm payment');
+      }
+
+      setMessage('Payment confirmed successfully ✅');
+      fetchOrders(); // Refresh orders to get updated payment status
+      setSelectedOrder(null); // Close the modal
       
     } catch (error) {
       console.error('Error confirming payment:', error);
       setMessage('Failed to confirm payment ❌');
+    } finally {
       setTimeout(() => setMessage(null), 3000);
     }
   };
@@ -169,6 +166,7 @@ export default function OrdersPage() {
                 <th className="py-3 px-4 text-left">Buyer</th>
                 <th className="py-3 px-4 text-left">Total ($)</th>
                 <th className="py-3 px-4 text-left">Status</th>
+                <th className="py-3 px-4 text-left">Payment Status</th>
                 <th className="py-3 px-4 text-left">Action</th>
               </tr>
             </thead>
@@ -191,6 +189,21 @@ export default function OrdersPage() {
                       }`}
                     >
                       {order.status}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span
+                      className={`inline-block px-2 py-1 text-sm font-semibold rounded ${
+                        order.paymentStatus === 'PAID'
+                          ? 'bg-green-100 text-green-800'
+                          : order.paymentStatus === 'CANCELLED'
+                          ? 'bg-red-100 text-red-800'
+                          : order.paymentStatus === 'REFUNDED'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}
+                    >
+                      {order.paymentStatus || 'PENDING'}
                     </span>
                   </td>
                   <td className="py-3 px-4 flex gap-2">
@@ -265,6 +278,22 @@ export default function OrdersPage() {
                 </span>
               </p>
               <p>
+                <span className="font-semibold">Payment Status:</span>{' '}
+                <span
+                  className={`inline-block px-2 py-1 text-sm font-semibold rounded ${
+                    selectedOrder.paymentStatus === 'PAID'
+                      ? 'bg-green-100 text-green-800'
+                      : selectedOrder.paymentStatus === 'CANCELLED'
+                      ? 'bg-red-100 text-red-800'
+                      : selectedOrder.paymentStatus === 'REFUNDED'
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}
+                >
+                  {selectedOrder.paymentStatus || 'PENDING'}
+                </span>
+              </p>
+              <p>
                 <span className="font-semibold">Order Time:</span>{' '}
                 {new Date(selectedOrder.orderTime).toLocaleString()}
               </p>
@@ -287,13 +316,18 @@ export default function OrdersPage() {
                       Buyer has uploaded proof of payment for this order.
                     </p>
                     
-                    {/* Confirm Payment Button - Only show when proof is available */}
-                    <button
-                      onClick={() => confirmPayment(selectedOrder.id)}
-                      className="mt-3 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition-colors font-medium text-sm"
-                    >
-                      Confirm Payment
-                    </button>
+                    {/* Confirm Payment Button - Only show when proof is available AND payment is not already confirmed */}
+                    {selectedOrder.paymentStatus !== 'PAID' && (
+                      <button
+                        onClick={() => confirmPayment(selectedOrder.id)}
+                        className="mt-3 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition-colors font-medium text-sm"
+                      >
+                        Confirm Payment
+                      </button>
+                    )}
+                    {selectedOrder.paymentStatus === 'PAID' && (
+                      <p className="text-green-600 font-medium mt-3">Payment Already Confirmed ✅</p>
+                    )}
                   </div>
                 ) : (
                   <div className="text-gray-500 text-sm">
