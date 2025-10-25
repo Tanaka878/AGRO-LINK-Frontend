@@ -13,7 +13,7 @@ interface Order {
   paymentStatus?: string; // Add payment status to the interface
 }
 
-const BASE_URL = 'http://localhost:8080'; // adjust if needed
+const BASE_URL = 'http://localhost:8081'; // adjust if needed
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);

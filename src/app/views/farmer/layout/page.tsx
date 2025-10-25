@@ -41,8 +41,7 @@ export default function DashboardLayout({ }: DashboardLayoutProps) {
     switch (active) {
       case 'Home':
         return <HomePage />;
-      case 'My Farm':
-        return <MyFarmPage />;
+    
       case 'Market':
         return <MarketPage />;
       case 'Orders': // ✅ Added Orders route

@@ -6,9 +6,11 @@ interface Product {
   id: number;
   productType: string;
   quantity: number;
-  price: number; // Changed from pricePerUnit to price to match your DTO
+  price: number;
   farmerEmail: string;
   farmerComments: string[] | null;
+  farmLocation: string;
+  availability: string;
 }
 
 interface Order {
@@ -21,6 +23,8 @@ interface Order {
   buyerEmail: string;
   status: string;
   orderTime: string;
+  availability: string;
+  farmLocation: string;
 }
 
 function FarmerProfileModal({
@@ -44,7 +48,7 @@ function FarmerProfileModal({
     try {
       const encodedEmail = encodeURIComponent(farmerEmail);
       const response = await fetch(
-        `http://localhost:8080/api/farmers/${encodedEmail}/addComment`,
+        `http://localhost:8081/api/farmers/${encodedEmail}/addComment`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -71,22 +75,31 @@ function FarmerProfileModal({
         </div>
         <div className="p-6">
           <div className="mb-6">
-            <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Email Address</p>
-            <p className="text-gray-800 font-medium">{farmerEmail || 'N/A'}</p>
+            <p className="text-sm text-gray-700 uppercase tracking-wide mb-1">
+              Email Address
+            </p>
+            <p className="text-gray-900 font-medium">{farmerEmail || 'N/A'}</p>
           </div>
 
           <div>
-            <h3 className="text-sm text-gray-500 uppercase tracking-wide mb-3">Comments & Reviews</h3>
+            <h3 className="text-sm text-gray-700 uppercase tracking-wide mb-3">
+              Comments & Reviews
+            </h3>
             {safeComments.length > 0 ? (
               <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
                 {safeComments.map((c, i) => (
-                  <div key={i} className="bg-gray-50 rounded-md p-3 text-sm text-gray-700">
+                  <div
+                    key={i}
+                    className="bg-gray-50 rounded-md p-3 text-sm text-gray-800 border border-gray-200"
+                  >
                     {c}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-400 text-sm italic mb-4">No comments available.</p>
+              <p className="text-gray-600 text-sm italic mb-4">
+                No comments available.
+              </p>
             )}
 
             <div className="flex gap-2">
@@ -95,7 +108,7 @@ function FarmerProfileModal({
                 placeholder="Leave a comment..."
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-400"
+                className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-400 text-gray-900 placeholder-gray-500"
               />
               <button
                 onClick={handleSubmit}
@@ -134,7 +147,7 @@ function BuyModal({
 
   const handleConfirmOrder = async () => {
     const buyerEmail = localStorage.getItem('email') || 'anonymous@example.com';
-    const pricePerUnit = product.price; // Use the actual product price from the product
+    const pricePerUnit = product.price;
 
     const orderData = {
       productType: product.productType,
@@ -146,7 +159,7 @@ function BuyModal({
     };
 
     try {
-      const response = await fetch('http://localhost:8080/api/orders/create', {
+      const response = await fetch('http://localhost:8081/api/orders/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData),
@@ -155,7 +168,9 @@ function BuyModal({
       if (!response.ok) throw new Error('Failed to create order');
 
       const createdOrder: Order = await response.json();
-      alert(`Order created successfully! Order ID: ${createdOrder.id}\nSpecification: ${specification}`);
+      alert(
+        `Order created successfully! Order ID: ${createdOrder.id}\nSpecification: ${specification}`
+      );
       onOrderCreated();
       onClose();
     } catch (error) {
@@ -169,36 +184,45 @@ function BuyModal({
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 p-4">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-6">
-        <h2 className="text-xl font-semibold mb-4">Buy {product.productType}</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          Buy {product.productType}
+        </h2>
 
         <div className="mb-4 space-y-2">
-          <p className="text-gray-600">Available: {product.quantity} units</p>
-          <p className="text-green-600 font-semibold">Price: ${product.price?.toFixed(2)} per unit</p>
-          
-          <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+          <p className="text-gray-700">Available: {product.quantity} units</p>
+          <p className="text-green-700 font-semibold">
+            Price: ${product.price?.toFixed(2)} per unit
+          </p>
+
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Quantity
+          </label>
           <input
             type="number"
             min={1}
             max={product.quantity}
             value={quantity}
             onChange={(e) => setQuantity(Number(e.target.value))}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-400"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-400 text-gray-900"
           />
-          
+
           {quantity > 0 && (
-            <p className="text-lg font-semibold text-blue-600">
+            <p className="text-lg font-semibold text-blue-700">
               Total: ${totalPrice}
             </p>
           )}
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Specification / Notes</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Specification / Notes
+          </label>
           <textarea
             value={specification}
             onChange={(e) => setSpecification(e.target.value)}
             rows={3}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-400"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-400 text-gray-900"
+            placeholder="Add any special requirements or notes..."
           ></textarea>
         </div>
 
@@ -228,7 +252,7 @@ export default function MarketPlace() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
-    fetch('http://localhost:8080/api/listed-products/all')
+    fetch('http://localhost:8081/api/listed-products/all')
       .then((res) => res.json())
       .then((data: Product[]) => {
         const normalizedData = Array.isArray(data)
@@ -238,7 +262,9 @@ export default function MarketPlace() {
               farmerEmail: product.farmerEmail || 'Unknown',
               productType: product.productType || 'Unknown Product',
               quantity: product.quantity || 0,
-              price: product.price || 0, // Ensure price is included
+              price: product.price || 0,
+              farmLocation: product.farmLocation || 'Unknown Location',
+              availability: product.availability || 'Unavailable',
             }))
           : [];
         setProducts(normalizedData);
@@ -269,7 +295,7 @@ export default function MarketPlace() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading products...</p>
+          <p className="text-gray-700">Loading products...</p>
         </div>
       </div>
     );
@@ -280,7 +306,9 @@ export default function MarketPlace() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Marketplace</h1>
-          <p className="mt-2 text-gray-600">Browse available products from local farmers</p>
+          <p className="mt-2 text-gray-700">
+            Browse available products from local farmers
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -300,10 +328,23 @@ export default function MarketPlace() {
               </div>
 
               <div className="p-4 flex flex-col flex-grow">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">{product.productType}</h3>
-                <p className="text-sm text-gray-600 mb-1">Available: {product.quantity} units</p>
-                <p className="text-green-600 font-semibold mb-3">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  {product.productType}
+                </h3>
+                <p className="text-sm text-gray-700 mb-1">
+                  Available: {product.quantity} units
+                </p>
+                <p className="text-green-700 font-semibold mb-1">
                   ${product.price?.toFixed(2)} per unit
+                </p>
+
+                <p className="text-sm text-gray-700 mb-1">
+                  <span className="font-medium text-gray-900">📍 Location:</span>{' '}
+                  {product.farmLocation}
+                </p>
+                <p className="text-sm text-gray-700 mb-3">
+                  <span className="font-medium text-gray-900">✅ Availability:</span>{' '}
+                  {product.availability}
                 </p>
 
                 <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-100">
@@ -316,7 +357,9 @@ export default function MarketPlace() {
                     height={32}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 truncate">{product.farmerEmail}</p>
+                    <p className="text-xs text-gray-600 truncate">
+                      {product.farmerEmail}
+                    </p>
                   </div>
                 </div>
 
@@ -333,7 +376,7 @@ export default function MarketPlace() {
 
         {products.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No products available at the moment.</p>
+            <p className="text-gray-700 text-lg">No products available at the moment.</p>
           </div>
         )}
       </div>
@@ -354,7 +397,13 @@ export default function MarketPlace() {
             setProducts((prev) =>
               prev.map((p) =>
                 p.id === selectedFarmer.id
-                  ? { ...p, farmerComments: [...(p.farmerComments || []), newComment] }
+                  ? {
+                      ...p,
+                      farmerComments: [
+                        ...(p.farmerComments || []),
+                        newComment,
+                      ],
+                    }
                   : p
               )
             );

@@ -13,7 +13,7 @@ interface Order {
   proofOfPaymentUrl?: string;
 }
 
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = 'http://localhost:8081';
 
 export default function MyOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -82,7 +82,7 @@ export default function MyOrders() {
 
       try {
         const encodedEmail = encodeURIComponent(buyerEmail);
-        const ordersRes = await fetch(`http://localhost:8080/api/orders/buyer/${encodedEmail}`);
+        const ordersRes = await fetch(`http://localhost:8081/api/orders/buyer/${encodedEmail}`);
         
         if (!ordersRes.ok) {
           throw new Error('Failed to fetch orders');

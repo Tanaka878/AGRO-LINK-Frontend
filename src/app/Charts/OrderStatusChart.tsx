@@ -38,7 +38,7 @@ export default function OrderStatusChart() {
       return;
     }
 
-    fetch(`http://localhost:8080/api/farmers/statistics/${email}`)
+    fetch(`http://localhost:8081/api/farmers/statistics/${email}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch statistics");
         return res.json();
